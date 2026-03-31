@@ -1,0 +1,21 @@
+# IDE
+.idea/
+
+# Build folders
+Debug/
+Release/
+build/
+
+# STM32CubeIDE / Eclipse
+.metadata/
+.settings/
+*.launch
+
+# Binaries
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+
+CMakeLists_template.txt
