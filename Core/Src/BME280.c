@@ -1,5 +1,17 @@
 #include "BME280.h"
 
+static void BME280_ReadRawData(BME280_Handle *dev, int32_t *adc_T, int32_t *adc_P, int32_t *adc_H);
+
+static uint8_t BME280_ReadCalibrationData(BME280_Handle *dev);
+static int32_t BME280_CompensateTemperature(BME280_Handle *dev, int32_t adc_T);
+static uint32_t BME280_CompensatePressure(BME280_Handle *dev, int32_t adc_P);
+static uint32_t BME280_CompensateHumidity(BME280_Handle *dev, int32_t adc_H);
+
+// Low-Level Functions
+static HAL_StatusTypeDef BME280_ReadRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data);
+static HAL_StatusTypeDef BME280_ReadRegisters(BME280_Handle *dev, uint8_t reg, uint8_t *data, uint8_t len);
+static HAL_StatusTypeDef BME280_WriteRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data);
+
 uint8_t BME280_Init(BME280_Handle *dev, I2C_HandleTypeDef *hi2c, uint8_t addr)
 {
     dev->hi2c = hi2c;
@@ -40,7 +52,7 @@ void BME280_ReadAll(BME280_Handle *dev, float *temp, float *pressure, float *hum
     *humidity = BME280_CompensateHumidity(dev, adc_H)    / 1024.0f;
 }
 
-void BME280_ReadRawData(BME280_Handle *dev, int32_t *adc_T, int32_t *adc_P, int32_t *adc_H)
+static void BME280_ReadRawData(BME280_Handle *dev, int32_t *adc_T, int32_t *adc_P, int32_t *adc_H)
 {
     uint8_t buf[8];
     BME280_ReadRegisters(dev, BME280_DATA_REGS_START, buf, 8);
@@ -94,7 +106,7 @@ static uint8_t BME280_ReadCalibrationData(BME280_Handle *dev)
 
 // TEMPERATURE COMPENSATION
 // Returns temperature in 0.01 degrees C (e.g. 2345 = 23.45C)
-int32_t BME280_CompensateTemperature(BME280_Handle *dev, int32_t adc_T)
+static int32_t BME280_CompensateTemperature(BME280_Handle *dev, int32_t adc_T)
 {
     int32_t var1, var2, T;
 
@@ -113,7 +125,7 @@ int32_t BME280_CompensateTemperature(BME280_Handle *dev, int32_t adc_T)
 
 // PRESSURE COMPENSATION
 // Returns pressure in Pa as Q24.8 fixed point
-uint32_t BME280_CompensatePressure(BME280_Handle *dev, int32_t adc_P)
+static uint32_t BME280_CompensatePressure(BME280_Handle *dev, int32_t adc_P)
 {
     int32_t var1, var2;
     uint32_t p;
@@ -145,7 +157,7 @@ uint32_t BME280_CompensatePressure(BME280_Handle *dev, int32_t adc_P)
 
 // HUMIDITY COMPENSATION
 // Returns humidity in %RH as Q22.10 fixed point
-uint32_t BME280_CompensateHumidity(BME280_Handle *dev, int32_t adc_H)
+static uint32_t BME280_CompensateHumidity(BME280_Handle *dev, int32_t adc_H)
 {
     int32_t v_x1_u32r;
 
@@ -167,17 +179,17 @@ uint32_t BME280_CompensateHumidity(BME280_Handle *dev, int32_t adc_H)
     return (uint32_t)(v_x1_u32r >> 12);
 }
 
-HAL_StatusTypeDef BME280_ReadRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data)
+static HAL_StatusTypeDef BME280_ReadRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data)
 {
     return HAL_I2C_Mem_Read(dev->hi2c, dev->i2c_addr, reg, I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY);
 }
 
-HAL_StatusTypeDef BME280_ReadRegisters(BME280_Handle *dev, uint8_t reg, uint8_t *data, uint8_t len)
+static HAL_StatusTypeDef BME280_ReadRegisters(BME280_Handle *dev, uint8_t reg, uint8_t *data, uint8_t len)
 {
     return HAL_I2C_Mem_Read(dev->hi2c, dev->i2c_addr, reg, I2C_MEMADD_SIZE_8BIT, data, len, HAL_MAX_DELAY);
 }
 
-HAL_StatusTypeDef BME280_WriteRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data)
+static HAL_StatusTypeDef BME280_WriteRegister(BME280_Handle *dev, uint8_t reg, uint8_t *data)
 {
     return HAL_I2C_Mem_Write(dev->hi2c, dev->i2c_addr, reg, I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY);
 }
