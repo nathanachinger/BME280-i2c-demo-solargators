@@ -19,3 +19,9 @@ build/
 *.map
 
 CMakeLists_template.txt
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
